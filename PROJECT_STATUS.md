@@ -1,6 +1,7 @@
 # Project Status: Redis Learning Backend
 
 ## Current Phase: Phase 1 — Project Scaffold, Docker & Database Connections
+
 **Status:** Complete (Phase 1 Acceptance Criteria fully satisfied)
 
 ---
@@ -86,19 +87,19 @@
 
 ## 3. Commands Executed & Actual Results
 
-| Command | Status | Result / Output Summary |
-| :--- | :--- | :--- |
-| `npm run typecheck` | ✅ Passed | 0 TypeScript errors |
-| `npm run lint` | ✅ Passed | 0 ESLint warnings or errors |
-| `npm run format:check` | ✅ Passed | All matched files use Prettier style |
-| `npm test` | ✅ Passed | 21 passing tests across 4 test suites (100% pass rate) |
-| `npm run build` | ✅ Passed | Compiled cleanly into `dist/` |
-| `docker compose config` | ✅ Passed | Configuration validated cleanly |
-| `docker compose ps` | ✅ Passed | All 5 containers up and healthy |
-| `docker compose exec redis redis-cli -a redispassword PING` | ✅ Passed | Returned `PONG` |
-| `docker compose exec redis redis-cli -a redispassword DBSIZE` | ✅ Passed | Returned `0` |
-| `docker compose exec redis redis-cli -a redispassword INFO server` | ✅ Passed | Confirmed `redis_version:8.6.7` |
-| `docker compose exec redis redis-cli -a redispassword INFO memory` | ✅ Passed | Confirmed `used_memory_human:1.42M` |
+| Command                                                            | Status    | Result / Output Summary                                |
+| :----------------------------------------------------------------- | :-------- | :----------------------------------------------------- |
+| `npm run typecheck`                                                | ✅ Passed | 0 TypeScript errors                                    |
+| `npm run lint`                                                     | ✅ Passed | 0 ESLint warnings or errors                            |
+| `npm run format:check`                                             | ✅ Passed | All matched files use Prettier style                   |
+| `npm test`                                                         | ✅ Passed | 21 passing tests across 4 test suites (100% pass rate) |
+| `npm run build`                                                    | ✅ Passed | Compiled cleanly into `dist/`                          |
+| `docker compose config`                                            | ✅ Passed | Configuration validated cleanly                        |
+| `docker compose ps`                                                | ✅ Passed | All 5 containers up and healthy                        |
+| `docker compose exec redis redis-cli -a redispassword PING`        | ✅ Passed | Returned `PONG`                                        |
+| `docker compose exec redis redis-cli -a redispassword DBSIZE`      | ✅ Passed | Returned `0`                                           |
+| `docker compose exec redis redis-cli -a redispassword INFO server` | ✅ Passed | Confirmed `redis_version:8.6.7`                        |
+| `docker compose exec redis redis-cli -a redispassword INFO memory` | ✅ Passed | Confirmed `used_memory_human:1.42M`                    |
 
 ---
 
