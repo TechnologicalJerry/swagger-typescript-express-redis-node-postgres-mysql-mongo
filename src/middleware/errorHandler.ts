@@ -1,3 +1,4 @@
+import { ZodError } from 'zod';
 import type { Request, Response, NextFunction } from 'express';
 import { env } from '../config/env.js';
 import { logger } from '../config/logger.js';
@@ -6,6 +7,7 @@ export interface AppErrorResponse {
   error: {
     message: string;
     statusCode: number;
+    details?: Array<{ path: string; message: string }>;
     stack?: string;
   };
 }
@@ -32,9 +34,18 @@ export function notFoundHandler(req: Request, res: Response): void {
 export function errorHandler(err: unknown, req: Request, res: Response, _next: NextFunction): void {
   let statusCode = 500;
   let message = 'Internal Server Error';
+  let details: Array<{ path: string; message: string }> | undefined = undefined;
   let stack: string | undefined = undefined;
 
-  if (err instanceof HttpError) {
+  if (err instanceof ZodError) {
+    statusCode = 400;
+    message =
+      'Validation failed: ' + err.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join(', ');
+    details = err.issues.map((i) => ({
+      path: i.path.join('.'),
+      message: i.message,
+    }));
+  } else if (err instanceof HttpError) {
     statusCode = err.statusCode;
     message = err.message;
   } else if (err instanceof Error) {
@@ -63,6 +74,7 @@ export function errorHandler(err: unknown, req: Request, res: Response, _next: N
     error: {
       message,
       statusCode,
+      ...(details ? { details } : {}),
       ...(stack ? { stack } : {}),
     },
   };
