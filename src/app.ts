@@ -9,6 +9,8 @@ import { postgresClient } from './db/postgres/client.js';
 import { mySqlClient } from './db/mysql/client.js';
 import { mongoClient } from './db/mongo/client.js';
 import { redisClient } from './db/redis/client.js';
+import { userRoutes } from './modules/user/user.routes.js';
+import { authRoutes } from './modules/auth/auth.routes.js';
 
 export interface HealthChecker {
   checkPostgres(): Promise<void>;
@@ -133,6 +135,12 @@ export function createApp(
       timestamp: new Date().toISOString(),
     });
   });
+
+  // User management module routes
+  app.use('/api/users', userRoutes);
+
+  // Authentication and Redis refresh-token session routes
+  app.use('/api/auth', authRoutes);
 
   // Centralized 404 handler for unmapped routes
   app.use(notFoundHandler);
