@@ -6,7 +6,7 @@ export class MongoClient {
   private static instance: MongoClient | null = null;
   private connection: Connection | null = null;
 
-  private constructor() {}
+  private constructor() { }
 
   public static getInstance(): MongoClient {
     if (!MongoClient.instance) {
