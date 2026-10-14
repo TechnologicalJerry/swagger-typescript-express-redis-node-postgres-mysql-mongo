@@ -12,6 +12,8 @@ describe('Environment validation', () => {
     REDIS_PASSWORD: 'password',
     CORS_ORIGIN: '*',
     SHUTDOWN_TIMEOUT_MS: '10000',
+    JWT_ACCESS_SECRET: 'dev_jwt_access_secret_key_at_least_32_characters_long',
+    JWT_REFRESH_SECRET: 'dev_jwt_refresh_secret_key_at_least_32_characters_long',
   };
 
   it('successfully parses valid environment configuration', () => {
@@ -24,6 +26,14 @@ describe('Environment validation', () => {
     expect(parsed.REDIS_URL).toBe(validBaseEnv.REDIS_URL);
     expect(parsed.REDIS_PASSWORD).toBe('password');
     expect(parsed.SHUTDOWN_TIMEOUT_MS).toBe(10000);
+    expect(parsed.BCRYPT_WORK_FACTOR).toBe(10);
+    expect(parsed.JWT_ACCESS_SECRET).toBe(validBaseEnv.JWT_ACCESS_SECRET);
+    expect(parsed.JWT_REFRESH_SECRET).toBe(validBaseEnv.JWT_REFRESH_SECRET);
+    expect(parsed.JWT_ISSUER).toBe('redis-learning-backend');
+    expect(parsed.JWT_AUDIENCE).toBe('redis-learning-api');
+    expect(parsed.JWT_ACCESS_EXPIRATION_SECONDS).toBe(900);
+    expect(parsed.JWT_REFRESH_EXPIRATION_SECONDS).toBe(604800);
+    expect(parsed.MAX_ACTIVE_SESSIONS_PER_USER).toBe(2);
   });
 
   it('fails fast when required database URLs are missing', () => {
@@ -39,6 +49,16 @@ describe('Environment validation', () => {
   it('fails when REDIS_PASSWORD is empty', () => {
     const invalidEnv = { ...validBaseEnv, REDIS_PASSWORD: '' };
     expect(() => parseEnv(invalidEnv)).toThrowError(/REDIS_PASSWORD/);
+  });
+
+  it('fails when JWT_ACCESS_SECRET is shorter than 32 characters', () => {
+    const invalidEnv = { ...validBaseEnv, JWT_ACCESS_SECRET: 'too-short-secret' };
+    expect(() => parseEnv(invalidEnv)).toThrowError(/JWT_ACCESS_SECRET/);
+  });
+
+  it('fails when JWT_REFRESH_SECRET is shorter than 32 characters', () => {
+    const invalidEnv = { ...validBaseEnv, JWT_REFRESH_SECRET: 'too-short-secret' };
+    expect(() => parseEnv(invalidEnv)).toThrowError(/JWT_REFRESH_SECRET/);
   });
 
   it('does not leak secret passwords in validation error message', () => {
