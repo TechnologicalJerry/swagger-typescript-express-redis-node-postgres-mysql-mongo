@@ -1,125 +1,137 @@
 # Project Status: Redis Learning Backend
 
-## Current Phase: Phase 1 — Project Scaffold, Docker & Database Connections
+## Current Phase: Phase 3 — Authentication and Redis Refresh-Token Sessions
 
-**Status:** Complete (Phase 1 Acceptance Criteria fully satisfied)
-
----
-
-## 1. Completed Tasks (Phase 1)
-
-1. **Workspace & Environment Inspection**:
-   - Inspected repository state and verified clean Git status.
-   - Verified Node.js `v24.19.0` (LTS), npm `12.0.2`, Docker `29.8.2`, and Docker Compose `v5.5.1`.
-   - Verified dependency versions against npm and Docker Hub.
-   - Identified and resolved PostgreSQL 18 volume directory configuration requirements (`/var/lib/postgresql`).
-   - Identified and resolved local port conflicts with host Windows services (PostgreSQL and MongoDB) using environment variable port overrides (`POSTGRES_PORT=5433`, `MONGO_PORT=27018`).
-
-2. **Docker Orchestration (`docker-compose.yml`)**:
-   - Configured 5 services: `postgres:18`, `mysql:8.4`, `mongo:8.0`, `redis:8.6`, and `axllent/mailpit:v1.31`.
-   - Configured named persistent volumes for all data stores.
-   - Implemented readiness health checks for all containers (`pg_isready`, `mysqladmin ping`, `mongosh ping`, `redis-cli ping`, `wget info`).
-   - Secured Redis using `--requirepass` flag with secret redaction.
-
-3. **Environment & Configuration Validation (`src/config/env.ts`)**:
-   - Implemented environment schema validation using Zod 4 (`4.6.7`).
-   - Configured fail-fast behavior with sanitized error reporting that never prints raw passwords or secrets.
-   - Synchronized `.env.example` with runtime configuration schema.
-
-4. **Database Connection Modules (`src/db/`)**:
-   - **PostgreSQL**: Implemented `PostgresClient` using Prisma ORM 7 (`7.10.0`) with `@prisma/adapter-pg` and native `pg.Pool`.
-   - **MySQL**: Implemented `MySqlClient` using Prisma ORM 7 (`7.10.0`) with `@prisma/adapter-mariadb`.
-   - **MongoDB**: Implemented `MongoClient` with Mongoose 9 (`9.1.2`) connection lifecycle and ping checks.
-   - **Redis**: Implemented `RedisClient` using `ioredis` with bounded command/connect timeouts, error handling, secret masking, and health checks.
-
-5. **Prisma Setup**:
-   - Configured dual isolated Prisma 7 schemas: `prisma/postgres/schema.prisma` and `prisma/mysql/schema.prisma`.
-   - Created dedicated `prisma/postgres/prisma.config.ts` and `prisma/mysql/prisma.config.ts`.
-   - Generated clients into `src/db/postgres/generated` and `src/db/mysql/generated`.
-
-6. **Application & HTTP Server (`src/app.ts`, `src/server.ts`)**:
-   - Built on Express 5 with Helmet security headers, explicit CORS configuration, and Pino HTTP logging.
-   - Implemented JSON body parsing with a 1MB payload limit.
-   - Implemented centralized 404 handler (`notFoundHandler`) and centralized error handler (`errorHandler`) ensuring production error responses do not leak stack traces or internal DB details.
-   - Implemented `GET /health` (liveness probe) returning 200 independently of backing stores.
-   - Implemented `GET /ready` (readiness probe) performing bounded read-only connectivity checks across all four databases.
-   - Implemented graceful shutdown for `SIGINT` and `SIGTERM` stopping HTTP traffic and closing database connections with a bounded timeout.
-
-7. **Testing & Quality Gates**:
-   - Implemented 21 automated tests across 4 test suites (`tests/env.test.ts`, `tests/app.test.ts`, `tests/db.test.ts`, `tests/server.test.ts`).
-   - Verified real database connectivity against live running containers.
-   - Verified TypeScript type check (`tsc --noEmit`), ESLint 9 Flat Config, Prettier formatting, Vitest, and production build (`dist/`).
+**Status:** Implementation Complete (Source code, types, configuration, documentation, and test files written).  
+**Execution Status:** **NOT EXECUTED OR VERIFIED**. Per workflow instructions for Phase 3, no runtime commands, builds, database migrations, tests, or container inspections have been executed. Application execution and complete testing will occur after all 10 phases are implemented.
 
 ---
 
-## 2. Files Created or Modified
+## 1. Implemented Tasks (Phase 3)
 
-- `package.json` — Defined ESM project, dependencies, scripts, and devDependencies.
-- `package-lock.json` — Locked exact dependency tree.
-- `tsconfig.json` — Configured TypeScript 6 with `NodeNext` ESM target and strict type checking.
-- `eslint.config.js` — ESLint 9 Flat Configuration.
-- `.prettierrc.json` — Prettier code formatting rules.
-- `.gitignore` — Ignored `.env`, `node_modules`, build output `dist/`, and Prisma generated client paths.
-- `.env.example` — Template environment variables with placeholder defaults.
-- `.env` — Local development configuration matching local ports.
-- `docker-compose.yml` — Container configuration for PostgreSQL, MySQL, MongoDB, Redis, and Mailpit.
-- `prisma/postgres/schema.prisma` — PostgreSQL Prisma schema.
-- `prisma/postgres/prisma.config.ts` — PostgreSQL Prisma 7 configuration file.
-- `prisma/mysql/schema.prisma` — MySQL Prisma schema.
-- `prisma/mysql/prisma.config.ts` — MySQL Prisma 7 configuration file.
-- `src/config/env.ts` — Zod 4 environment validation module.
-- `src/config/logger.ts` — Pino logger with credential redaction.
-- `src/db/postgres/client.ts` — Reusable PostgreSQL Prisma 7 client.
-- `src/db/mysql/client.ts` — Reusable MySQL Prisma 7 client.
-- `src/db/mongo/client.ts` — Reusable MongoDB Mongoose client.
-- `src/db/redis/client.ts` — Reusable Redis ioredis client.
-- `src/middleware/errorHandler.ts` — Centralized 404 and error handling middleware.
-- `src/app.ts` — Express 5 application setup, health, and readiness endpoints.
-- `src/server.ts` — HTTP server bootstrap and graceful shutdown.
-- `tests/env.test.ts` — Unit tests for environment validation.
-- `tests/app.test.ts` — Integration tests for `/health`, `/ready`, 404, and error handling.
-- `tests/db.test.ts` — Integration tests verifying real database connectivity.
-- `tests/server.test.ts` — Tests for connection cleanup during graceful shutdown.
-- `README.md` — Project documentation and runbook.
-- `PROJECT_STATUS.md` — Current phase tracking and status report.
+1. **Dependency Configuration**:
+   - Added `jsonwebtoken` (`^9.0.2`) to `dependencies` in `package.json`.
+   - Added `@types/jsonwebtoken` (`^9.0.9`) to `devDependencies` in `package.json`.
+
+2. **Environment & Zod Validation**:
+   - Extended `src/config/env.ts` with:
+     - `JWT_ACCESS_SECRET`: String (min 32 characters, required).
+     - `JWT_REFRESH_SECRET`: String (min 32 characters, required).
+     - `JWT_ISSUER`: String (default `redis-learning-backend`).
+     - `JWT_AUDIENCE`: String (default `redis-learning-api`).
+     - `JWT_ACCESS_EXPIRATION_SECONDS`: Number (default `900` / 15 minutes).
+     - `JWT_REFRESH_EXPIRATION_SECONDS`: Number (default `604800` / 7 days).
+     - `MAX_ACTIVE_SESSIONS_PER_USER`: Number (min 1, max 10, default `2`).
+   - Updated `.env.example` and `.env` with strong configuration keys.
+   - Updated `tests/env.test.ts` with test cases for JWT secrets and length constraints.
+
+3. **Token Service (`src/modules/auth/token.service.ts`)**:
+   - Implemented JWT generation and verification using `jsonwebtoken`.
+   - Enforced HMAC SHA-256 (`HS256`) explicitly during verification (`algorithms: ['HS256']`).
+   - Separate access and refresh token lifespans.
+   - Included claims: `sub`, `iss`, `aud`, `iat`, `exp`, `jti`, `tokenType`, `email`, `roles`.
+   - Explicit discrimination between `'ACCESS'` and `'REFRESH'` tokens.
+
+4. **Redis Refresh-Token Session Store (`src/modules/auth/session.service.ts`)**:
+   - Designed Redis Cluster hash-tagged keys:
+     - Session key: `refresh:{userId}:{tokenId}` (Hash storing `userId`, `tokenId`, `createdAt`, `expiresAt`, `userAgent`, `ipAddress`).
+     - User sessions index: `user_sessions:{userId}` (Sorted Set `ZSET` scoring `createdAt` timestamps).
+   - Atomic session registration with concurrency control and FIFO eviction:
+     - Implemented `REGISTER_SESSION_LUA` script: prunes expired index members, evicts oldest session when >= `MAX_ACTIVE_SESSIONS_PER_USER` (2), stores session Hash, updates ZSET index, and sets TTL.
+   - Atomic refresh-token rotation:
+     - Implemented `ROTATE_SESSION_LUA` script: validates old session presence before atomically swapping to replacement session.
+   - Replay / Reuse Detection:
+     - If an old or rotated token is presented whose session no longer exists in Redis, `REVOKE_ALL_SESSIONS_LUA` immediately purges all active sessions for that user.
+   - Session revocation / logout support (single session or all user sessions).
+   - Fails closed on Redis outages without leaking secrets or retrying state-changing operations blindly.
+
+5. **Authentication Service (`src/modules/auth/auth.service.ts`)**:
+   - `login`: Normalizes email, retrieves user from PostgreSQL, verifies password with `bcrypt.compare`, rejects deactivated accounts, generates tokens, and creates Redis session.
+   - `refresh`: Verifies refresh token, re-validates PostgreSQL user existence and active status, and atomically rotates session in Redis with replay protection.
+   - `logout`: Revokes specific refresh session or all sessions for authenticated user.
+   - `getCurrentUser`: Retrieves safe user profile (`SafeUser`) from PostgreSQL.
+
+6. **Authentication Middleware (`src/middleware/authenticate.ts`)**:
+   - Extracts Bearer token from `Authorization` header.
+   - Verifies signature, algorithm (`HS256`), issuer, audience, and `tokenType === 'ACCESS'`.
+   - Populates typed `req.user` (`AuthContext` with `id`, `email`, `roles`, `role`).
+
+7. **Auth HTTP Controller & Routes**:
+   - `src/modules/auth/auth.schema.ts`: Zod schemas for login, refresh, and logout payloads with `.strict()`.
+   - `src/modules/auth/auth.controller.ts`: HTTP request handlers with zero direct DB/Redis access.
+   - `src/modules/auth/auth.routes.ts`: Mounted at `/api/auth` in `src/app.ts`:
+     - `POST /api/auth/login` (Public)
+     - `POST /api/auth/refresh` (Public)
+     - `POST /api/auth/logout` (Protected by `authenticate`)
+     - `GET /api/auth/me` (Protected by `authenticate`)
+
+8. **Automated Test Suite (Write-Only) (`tests/auth.test.ts`)**:
+   - Created test suite covering 16 scenarios:
+     - Successful login
+     - Uniform 401 error on unknown email and incorrect password
+     - Deactivated account rejection (403)
+     - Zod input validation (400)
+     - JWT claims and algorithm tampering rejection
+     - Rejection of refresh token presented as access token
+     - Successful refresh token rotation
+     - Replay detection and family session revocation
+     - Account deactivation during refresh token presentation
+     - Concurrent refresh requests (exactly one succeeds)
+     - Two-session limit with FIFO eviction of oldest session
+     - Concurrent login requests bounded by session limit
+     - Logout and repeated logout idempotence
+     - Protected `/me` endpoint with safe user data and header validation
+     - Redis downtime failure resilience (fails closed with 500)
+     - PostgreSQL failure resilience during authentication
 
 ---
 
-## 3. Commands Executed & Actual Results
+## 2. Files Created or Modified (Phase 3)
 
-| Command                                                            | Status    | Result / Output Summary                                |
-| :----------------------------------------------------------------- | :-------- | :----------------------------------------------------- |
-| `npm run typecheck`                                                | ✅ Passed | 0 TypeScript errors                                    |
-| `npm run lint`                                                     | ✅ Passed | 0 ESLint warnings or errors                            |
-| `npm run format:check`                                             | ✅ Passed | All matched files use Prettier style                   |
-| `npm test`                                                         | ✅ Passed | 21 passing tests across 4 test suites (100% pass rate) |
-| `npm run build`                                                    | ✅ Passed | Compiled cleanly into `dist/`                          |
-| `docker compose config`                                            | ✅ Passed | Configuration validated cleanly                        |
-| `docker compose ps`                                                | ✅ Passed | All 5 containers up and healthy                        |
-| `docker compose exec redis redis-cli -a redispassword PING`        | ✅ Passed | Returned `PONG`                                        |
-| `docker compose exec redis redis-cli -a redispassword DBSIZE`      | ✅ Passed | Returned `0`                                           |
-| `docker compose exec redis redis-cli -a redispassword INFO server` | ✅ Passed | Confirmed `redis_version:8.6.7`                        |
-| `docker compose exec redis redis-cli -a redispassword INFO memory` | ✅ Passed | Confirmed `used_memory_human:1.42M`                    |
+### Created:
+- `src/modules/auth/auth.types.ts`
+- `src/modules/auth/auth.schema.ts`
+- `src/modules/auth/token.service.ts`
+- `src/modules/auth/session.service.ts`
+- `src/modules/auth/auth.service.ts`
+- `src/modules/auth/auth.controller.ts`
+- `src/modules/auth/auth.routes.ts`
+- `src/middleware/authenticate.ts`
+- `tests/auth.test.ts`
 
----
-
-## 4. Known Issues & Compatibility Notes
-
-1. **Host Port Conflicts (Windows)**:
-   - The host system runs native Windows services for PostgreSQL on port 5432 and MongoDB on port 27017.
-   - **Resolution**: Port mapping in `.env` binds Docker PostgreSQL to host port `5433` and MongoDB to host port `27018`. Containers internally remain on their standard ports (5432 and 27017).
-2. **PostgreSQL 18 Volume Layout**:
-   - In `postgres:18`, mounting directly to `/var/lib/postgresql/data` causes a startup check failure for `pg_ctlcluster` compatibility.
-   - **Resolution**: Volume mounted to `/var/lib/postgresql` as mandated by PostgreSQL 18 image specifications.
-3. **Prisma MySQL Adapter**:
-   - Prisma ORM 7 uses `@prisma/adapter-mariadb` (with `provider = "mysql"`) for connecting to MySQL and MariaDB databases. `@prisma/adapter-mysql` is not an npm package.
+### Modified:
+- `package.json` — Added `jsonwebtoken` and `@types/jsonwebtoken`.
+- `src/config/env.ts` — Added JWT and session configuration to `envSchema`.
+- `.env.example` — Added JWT configuration variables.
+- `.env` — Added local JWT configuration variables.
+- `src/middleware/auth.ts` — Unified `AuthContext` with email and roles.
+- `src/app.ts` — Mounted `authRoutes` at `/api/auth`.
+- `tests/env.test.ts` — Updated test assertions for JWT configuration.
+- `README.md` — Added Phase 3 architecture, API endpoints, Redis key patterns, and session eviction documentation.
+- `PROJECT_STATUS.md` — Updated with Phase 3 implementation details and write-only execution status.
 
 ---
 
-## 5. Next Phase: Phase 2
+## 3. Blockers or Missing Prerequisites
 
-- **Phase 2 Objective**: Core Redis Data Types & Basic Caching.
-- **Pending Tasks**:
-  - Implement Redis String operations, TTLs, and cache invalidation patterns.
-  - Implement cache-aside pattern for product catalog.
-  - Set up automated cache consistency tests.
+- None. All Phase 3 requirements have been implemented in source code without modifying existing Phase 1 or Phase 2 functionality.
+
+---
+
+## 4. Execution & Verification Status
+
+- **Status:** **NOT EXECUTED OR VERIFIED**.
+- No terminal commands, tests, builds, Prisma migrations, Docker executions, or Redis inspections were performed in this phase, complying with the write-only workflow requirement.
+- Full runtime verification will be performed across the entire test suite after all 10 phases are completed.
+
+---
+
+## 5. Remaining Phases
+
+- **Phase 4**: Redis Access-Token Blacklist & Sliding-Window Rate Limiting
+- **Phase 5**: Product Catalog with Redis Cache-Aside & Cache Invalidation
+- **Phase 6**: Real-Time Counters, Leaderboards & HyperLogLog Analytics
+- **Phase 7**: Inventory Management with Redlock Distributed Locking
+- **Phase 8**: Real-Time Notifications with Redis Pub/Sub & WebSockets
+- **Phase 9**: Background Processing & Delayed Jobs with BullMQ
+- **Phase 10**: Audit Logging & Event Sourcing with Redis Streams & MongoDB
