@@ -26,7 +26,7 @@ export class RedisClient {
     });
 
     this.client.on('error', (err: Error) => {
-      // Ensure raw connection string and sensitive credentials are never leaked
+      // Ensure raw connection string and sensitive credentials are never leaked.
       logger.error(
         { endpoint: redactedEndpoint, message: err.message },
         'Redis client connection error',
