@@ -14,6 +14,18 @@ export const envSchema = z.object({
   REDIS_PASSWORD: z.string().min(1, 'REDIS_PASSWORD is required'),
   CORS_ORIGIN: z.string().default('*'),
   SHUTDOWN_TIMEOUT_MS: z.coerce.number().int().positive().default(10000),
+  BCRYPT_WORK_FACTOR: z.coerce.number().int().min(4).max(16).default(10),
+  JWT_ACCESS_SECRET: z
+    .string()
+    .min(32, 'JWT_ACCESS_SECRET must be at least 32 characters long'),
+  JWT_REFRESH_SECRET: z
+    .string()
+    .min(32, 'JWT_REFRESH_SECRET must be at least 32 characters long'),
+  JWT_ISSUER: z.string().min(1).default('redis-learning-backend'),
+  JWT_AUDIENCE: z.string().min(1).default('redis-learning-api'),
+  JWT_ACCESS_EXPIRATION_SECONDS: z.coerce.number().int().positive().default(900),
+  JWT_REFRESH_EXPIRATION_SECONDS: z.coerce.number().int().positive().default(604800),
+  MAX_ACTIVE_SESSIONS_PER_USER: z.coerce.number().int().min(1).max(10).default(2),
 });
 
 export type Env = z.infer<typeof envSchema>;
