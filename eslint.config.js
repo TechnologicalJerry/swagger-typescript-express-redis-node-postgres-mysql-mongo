@@ -16,6 +16,11 @@ export default tseslint.config(
     },
   },
   {
-    ignores: ['dist/**', 'node_modules/**', 'src/db/*/generated/**'],
+    ignores: [
+      'dist/**',
+      'node_modules/**',
+      'src/db/*/generated/**',
+      'src/routes/swagger.ts'
+    ],
   },
 );
