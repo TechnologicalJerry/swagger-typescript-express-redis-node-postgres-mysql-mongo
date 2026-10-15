@@ -121,6 +121,14 @@ export class TokenService {
         throw new HttpError(401, 'Access token has expired');
       }
       if (err instanceof jwt.JsonWebTokenError) {
+        try {
+          const unverified = jwt.decode(token) as jwt.JwtPayload | null;
+          if (unverified && unverified.tokenType === 'REFRESH') {
+            throw new HttpError(401, 'Invalid token: Expected an access token');
+          }
+        } catch (innerErr) {
+          if (innerErr instanceof HttpError) throw innerErr;
+        }
         throw new HttpError(401, `Invalid access token: ${err.message}`);
       }
       throw new HttpError(401, 'Authentication failed');
