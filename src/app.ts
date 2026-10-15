@@ -11,6 +11,9 @@ import { mongoClient } from './db/mongo/client.js';
 import { redisClient } from './db/redis/client.js';
 import { userRoutes } from './modules/user/user.routes.js';
 import { authRoutes } from './modules/auth/auth.routes.js';
+import { productsRoutes } from './modules/products/products.routes.js';
+import { inventoryRoutes } from './modules/inventory/inventory.routes.js';
+import { auditRoutes } from './modules/audit/audit.routes.js';
 
 export interface HealthChecker {
   checkPostgres(): Promise<void>;
@@ -67,6 +70,9 @@ export function createApp(
   };
 
   const app = express();
+
+  // Trust first proxy hop when deployed behind reverse proxy
+  app.set('trust proxy', 1);
 
   // Security and utilities middleware
   app.use(helmet());
@@ -141,6 +147,15 @@ export function createApp(
 
   // Authentication and Redis refresh-token session routes
   app.use('/api/auth', authRoutes);
+
+  // Product catalog and Redis cache-aside routes
+  app.use('/api/products', productsRoutes);
+
+  // Authoritative inventory and atomic stock reservation routes
+  app.use('/api/inventory', inventoryRoutes);
+
+  // Durable MongoDB audit log routes
+  app.use('/api/audit-logs', auditRoutes);
 
   // Centralized 404 handler for unmapped routes
   app.use(notFoundHandler);
