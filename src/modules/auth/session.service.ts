@@ -249,10 +249,36 @@ export class SessionService {
         now.getTime().toString(),
       );
 
-      return Number(result) === 1;
+      const success = Number(result) === 1;
+      if (success) {
+        await this.markAsRotated(userId, oldTokenId);
+      }
+      return success;
     } catch (err: unknown) {
       logger.error({ err, userId, oldTokenId }, 'Failed to rotate Redis refresh-token session');
       throw new HttpError(500, 'Session store unavailable');
+    }
+  }
+
+  public getRotatedKey(tokenId: string): string {
+    return `refresh:rotated:${tokenId}`;
+  }
+
+  public async markAsRotated(userId: string, tokenId: string): Promise<void> {
+    try {
+      await this.redis.set(this.getRotatedKey(tokenId), userId, 'EX', 86400);
+    } catch (err: unknown) {
+      logger.warn({ err, tokenId }, 'Failed to mark token as rotated in Redis');
+    }
+  }
+
+  public async isRotated(tokenId: string): Promise<boolean> {
+    try {
+      const exists = await this.redis.exists(this.getRotatedKey(tokenId));
+      return exists === 1;
+    } catch (err: unknown) {
+      logger.warn({ err, tokenId }, 'Failed to check rotated token status');
+      return false;
     }
   }
 
