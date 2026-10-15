@@ -7,6 +7,8 @@ export interface AuthContext {
   role: 'USER' | 'ADMIN';
   email?: string;
   roles?: string[];
+  jti?: string;
+  exp?: number;
 }
 
 declare module 'express' {
