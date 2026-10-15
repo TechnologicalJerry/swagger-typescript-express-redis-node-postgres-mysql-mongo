@@ -1,13 +1,22 @@
 import type { Request, Response, NextFunction } from 'express';
 import { authService, type AuthService } from './auth.service.js';
+import { otpService, type OtpService } from './otp.service.js';
 import { loginSchema, refreshSchema, logoutSchema } from './auth.schema.js';
+import {
+  requestEmailVerificationSchema,
+  verifyEmailSchema,
+  requestPasswordResetSchema,
+  verifyPasswordResetSchema,
+} from './otp.schema.js';
 import { HttpError } from '../../middleware/errorHandler.js';
 
 export class AuthController {
   private readonly service: AuthService;
+  private readonly otpSvc: OtpService;
 
-  constructor(service: AuthService = authService) {
+  constructor(service: AuthService = authService, otpSvc: OtpService = otpService) {
     this.service = service;
+    this.otpSvc = otpSvc;
   }
 
   public login = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
@@ -55,7 +64,10 @@ export class AuthController {
       }
 
       const validated = logoutSchema.parse(req.body || {});
-      await this.service.logout(req.user.id, validated.refreshToken);
+      const accessContext =
+        req.user.jti && req.user.exp ? { jti: req.user.jti, exp: req.user.exp } : undefined;
+
+      await this.service.logout(req.user.id, validated.refreshToken, accessContext);
 
       res.status(200).json({
         status: 'success',
@@ -77,6 +89,83 @@ export class AuthController {
       res.status(200).json({
         status: 'success',
         data: { user },
+      });
+    } catch (err) {
+      next(err);
+    }
+  };
+
+  public requestEmailVerification = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const validated = requestEmailVerificationSchema.parse(req.body);
+      const result = await this.otpSvc.requestEmailVerification(validated.email);
+
+      res.status(200).json({
+        status: 'success',
+        message: result.message,
+      });
+    } catch (err) {
+      next(err);
+    }
+  };
+
+  public verifyEmail = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const validated = verifyEmailSchema.parse(req.body);
+      await this.otpSvc.verifyEmail(validated.email, validated.otp);
+
+      res.status(200).json({
+        status: 'success',
+        message: 'Email address verified successfully',
+      });
+    } catch (err) {
+      next(err);
+    }
+  };
+
+  public requestPasswordReset = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const validated = requestPasswordResetSchema.parse(req.body);
+      const result = await this.otpSvc.requestPasswordReset(validated.email);
+
+      res.status(200).json({
+        status: 'success',
+        message: result.message,
+      });
+    } catch (err) {
+      next(err);
+    }
+  };
+
+  public verifyPasswordReset = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const validated = verifyPasswordResetSchema.parse(req.body);
+      await this.otpSvc.verifyPasswordReset(
+        validated.email,
+        validated.otp,
+        validated.newPassword,
+      );
+
+      res.status(200).json({
+        status: 'success',
+        message:
+          'Password has been reset successfully. Please log in with your new password.',
       });
     } catch (err) {
       next(err);
