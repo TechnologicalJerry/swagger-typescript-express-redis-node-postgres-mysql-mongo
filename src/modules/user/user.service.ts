@@ -5,12 +5,15 @@ import { UserRepository, userRepository, type UserWithRoles } from './user.repos
 import type { SafeUser, CreateUserData, UpdateUserData, PaginatedResult } from './user.types.js';
 
 export function toSafeUser(user: UserWithRoles): SafeUser {
+  const customUser = user as unknown as { isEmailVerified?: boolean; emailVerifiedAt?: Date | null };
   return {
     id: user.id,
     email: user.email,
     displayName: user.displayName,
     status: user.status,
     roles: user.roles.map((r) => r.role.name),
+    isEmailVerified: customUser.isEmailVerified ?? false,
+    emailVerifiedAt: customUser.emailVerifiedAt ? customUser.emailVerifiedAt.toISOString() : null,
     deactivatedAt: user.deactivatedAt ? user.deactivatedAt.toISOString() : null,
     createdAt: user.createdAt.toISOString(),
     updatedAt: user.updatedAt.toISOString(),
