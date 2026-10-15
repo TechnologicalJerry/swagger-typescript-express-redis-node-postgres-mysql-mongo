@@ -53,7 +53,8 @@ export function errorHandler(err: unknown, req: Request, res: Response, _next: N
       statusCode = (err as { statusCode: number }).statusCode;
       message = err.message;
     } else {
-      message = env.NODE_ENV === 'production' ? 'Internal Server Error' : err.message;
+      const isSensitive = /database|postgres|mysql|mongo|connection lost|econrefused|timed out/i.test(err.message);
+      message = env.NODE_ENV === 'production' || isSensitive ? 'Internal Server Error' : err.message;
     }
     if (env.NODE_ENV !== 'production') {
       stack = err.stack;
