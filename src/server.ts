@@ -6,6 +6,10 @@ import { postgresClient } from './db/postgres/client.js';
 import { mySqlClient } from './db/mysql/client.js';
 import { mongoClient } from './db/mongo/client.js';
 import { redisClient } from './db/redis/client.js';
+import { bullWorkerManager } from './jobs/workers/index.js';
+import { bullSchedulerService } from './jobs/schedulers/bullmq.scheduler.js';
+import { cacheInvalidationSubscriber } from './modules/events/pubsub/cache-invalidation.subscriber.js';
+import { auditLogStreamConsumer } from './modules/events/streams/stream-consumer.service.js';
 
 let server: Server | null = null;
 let isShuttingDown = false;
@@ -43,6 +47,11 @@ export async function shutdown(signal: string): Promise<void> {
   forceExitTimeout.unref();
 
   try {
+    await bullSchedulerService.stop();
+    await bullWorkerManager.stopAll();
+    await cacheInvalidationSubscriber.stop();
+    await auditLogStreamConsumer.stop();
+
     if (server) {
       await new Promise<void>((resolve, reject) => {
         server?.close((err) => {
@@ -71,6 +80,11 @@ export function startServer(): Server {
       `Server listening on http://localhost:${env.PORT}`,
     );
   });
+
+  bullWorkerManager.startAll();
+  void bullSchedulerService.start();
+  void cacheInvalidationSubscriber.start();
+  void auditLogStreamConsumer.start();
 
   process.on('SIGINT', () => void shutdown('SIGINT'));
   process.on('SIGTERM', () => void shutdown('SIGTERM'));
