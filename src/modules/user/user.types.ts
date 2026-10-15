@@ -4,6 +4,8 @@ export interface SafeUser {
   displayName: string;
   status: 'ACTIVE' | 'DEACTIVATED';
   roles: string[];
+  isEmailVerified?: boolean;
+  emailVerifiedAt?: string | null;
   deactivatedAt: string | null;
   createdAt: string;
   updatedAt: string;
