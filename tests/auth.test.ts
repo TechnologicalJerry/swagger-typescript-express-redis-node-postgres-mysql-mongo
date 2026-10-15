@@ -36,6 +36,12 @@ describe('Authentication and Redis Refresh-Token Sessions Module', () => {
         },
       },
     });
+
+    // 2. Clean rate limit keys so tests run without hitting IP burst limits
+    const rateKeys = await redis.keys('rate:*');
+    if (rateKeys.length > 0) {
+      await redis.del(...rateKeys);
+    }
   };
 
   beforeEach(async () => {
