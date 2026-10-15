@@ -173,6 +173,31 @@ export class UserRepository {
       },
     });
   }
+
+  public async updatePassword(id: string, passwordHash: string): Promise<UserWithRoles> {
+    return this.db.user.update({
+      where: { id },
+      data: { passwordHash },
+      include: {
+        roles: {
+          include: {
+            role: true,
+          },
+        },
+      },
+    });
+  }
+
+  public async markEmailVerified(id: string): Promise<UserWithRoles | null> {
+    await this.db.$executeRaw`
+      UPDATE "users"
+      SET "is_email_verified" = true,
+          "email_verified_at" = NOW(),
+          "updated_at" = NOW()
+      WHERE "id" = ${id}::uuid
+    `;
+    return this.findById(id);
+  }
 }
 
 export const userRepository = new UserRepository();
