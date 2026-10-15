@@ -18,6 +18,8 @@ model User {
   passwordHash  String      @map("password_hash")
   displayName   String      @map("display_name")
   status        UserStatus  @default(ACTIVE)
+  isEmailVerified Boolean   @default(false) @map("is_email_verified")
+  emailVerifiedAt DateTime? @map("email_verified_at")
   deactivatedAt DateTime?   @map("deactivated_at")
   createdAt     DateTime    @default(now()) @map("created_at")
   updatedAt     DateTime    @updatedAt @map("updated_at")
@@ -49,3 +51,62 @@ model UserRole {
   @@id([userId, roleId])
   @@map("user_roles")
 }
+
+model Inventory {
+  id               String   @id @default(uuid()) @db.Uuid
+  productId        String   @unique @map("product_id") @db.VarChar(36)
+  quantity         Int      @default(0)
+  reservedQuantity Int      @default(0) @map("reserved_quantity")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  @@index([productId])
+  @@map("inventories")
+}
+
+enum ReservationStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  EXPIRED
+}
+
+model Reservation {
+  id             String            @id @default(uuid()) @db.Uuid
+  productId      String            @map("product_id") @db.VarChar(36)
+  quantity       Int
+  status         ReservationStatus @default(PENDING)
+  idempotencyKey String            @unique @map("idempotency_key") @db.VarChar(128)
+  expiresAt      DateTime          @map("expires_at")
+  confirmedAt    DateTime?         @map("confirmed_at")
+  cancelledAt    DateTime?         @map("cancelled_at")
+  createdAt      DateTime          @default(now()) @map("created_at")
+  updatedAt      DateTime          @updatedAt @map("updated_at")
+
+  @@index([productId])
+  @@index([status, expiresAt])
+  @@map("reservations")
+}
+
+enum OutboxStatus {
+  PENDING
+  PUBLISHED
+  FAILED
+}
+
+model OutboxEvent {
+  id           String       @id @default(uuid()) @db.Uuid
+  eventId      String       @unique @map("event_id") @db.VarChar(36)
+  eventType    String       @map("event_type") @db.VarChar(64)
+  channel      String       @db.VarChar(64)
+  payload      Json
+  status       OutboxStatus @default(PENDING)
+  retryCount   Int          @default(0) @map("retry_count")
+  createdAt    DateTime     @default(now()) @map("created_at")
+  publishedAt  DateTime?    @map("published_at")
+  errorMessage String?      @map("error_message")
+
+  @@index([status, createdAt])
+  @@map("outbox_events")
+}
+
