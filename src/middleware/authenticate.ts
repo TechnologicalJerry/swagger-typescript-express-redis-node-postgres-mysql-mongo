@@ -35,7 +35,14 @@ export async function authenticate(
     const payload = tokenService.verifyAccessToken(token);
 
     // Immediate access token revocation check via Redis blacklist (fails closed on Redis errors)
-    const isRevoked = await tokenBlacklistService.isBlacklisted(payload.jti);
+    let isRevoked = false;
+    try {
+      isRevoked = await tokenBlacklistService.isBlacklisted(payload.jti);
+    } catch (err: unknown) {
+      if (err instanceof HttpError) throw err;
+      throw new HttpError(500, 'Authentication service temporarily unavailable');
+    }
+
     if (isRevoked) {
       // Allow already-blacklisted tokens on logout to ensure repeated logout calls remain safe and idempotent
       const isLogoutRoute = req.originalUrl?.endsWith('/logout') || req.path?.endsWith('/logout');
